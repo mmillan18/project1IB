@@ -9,7 +9,7 @@ You will be expected to finish this on your own, but you can use the available c
 
 You are working for one of the largest E-commerce sites in Latam and they requested the Data Science team to analyze company data to understand better their performance in specific metrics during the years 2016-2018.
 
-They are two main areas they want to explore, those are **Revenue** and *Delivery*.
+They are two main areas they want to explore, those are **Revenue** and **Delivery**.
 
 Basically, they would like to understand how much revenue by year they got, which were the most and less popular product categories, and the revenue by state. On the other hand, it's also important to know how well the company is delivering the products sold in time and form to their users. For example, seeing how much takes to deliver a package depends on the month and the difference between the estimated delivery date and the real one.
 
