@@ -1,3 +1,4 @@
+from io import StringIO
 from typing import Dict
 
 import requests
@@ -32,7 +33,8 @@ def get_public_holidays(public_holidays_url: str, year: str) -> DataFrame:
     except requests.RequestException as e:
         raise SystemExit(e)
     
-    holidays = read_json(response.text)
+    holidays = StringIO(response.text)
+    holidays = read_json(holidays)
     df = DataFrame(holidays)
 
     df = df.drop(columns=["types", "counties"])
