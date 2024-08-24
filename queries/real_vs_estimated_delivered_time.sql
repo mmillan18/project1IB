@@ -15,36 +15,58 @@
 -- 2. order_status == 'delivered' AND order_delivered_customer_date IS NOT NULL
 -- 3. Take distinct order_id.
 
-WITH DeliveredOrders AS (
+WITH delivery_times AS (
+    SELECT 
+        strftime('%Y', order_delivered_customer_date) AS year,
+        strftime('%m', order_delivered_customer_date) AS month_no,
+        strftime('%Y-%m', order_delivered_customer_date) AS year_month,
+        julianday(order_delivered_customer_date) - julianday(order_estimated_delivery_date) AS delivery_difference
+    FROM 
+        olist_orders
+    WHERE 
+        order_status = 'delivered' 
+        AND order_delivered_customer_date IS NOT NULL
+    GROUP BY 
+        order_id
+),
+real_times AS (
+    SELECT 
+        year_month,
+        month_no,
+        AVG(delivery_difference) AS avg_real_time
+    FROM 
+        delivery_times
+    GROUP BY 
+        year_month
+),
+estimated_times AS (
     SELECT 
         strftime('%Y', order_purchase_timestamp) AS year,
         strftime('%m', order_purchase_timestamp) AS month_no,
         strftime('%Y-%m', order_purchase_timestamp) AS year_month,
-        CAST(
-            julianday(order_delivered_customer_date) - 
-            julianday(order_estimated_delivery_date) 
-        AS INTEGER) AS delivery_diff,
-        CAST(
-            julianday(order_delivered_customer_date) - 
-            julianday(order_purchase_timestamp) 
-        AS INTEGER) AS real_delivery_time,
-        order_status
+        AVG(julianday(order_estimated_delivery_date) - julianday(order_purchase_timestamp)) AS avg_estimated_time
     FROM 
         olist_orders
     WHERE 
-        order_status = 'delivered'
+        order_status = 'delivered' 
         AND order_delivered_customer_date IS NOT NULL
+    GROUP BY 
+        year_month
 )
 SELECT 
     month_no,
     strftime('%b', '2000-' || month_no || '-01') AS month,
-    AVG(CASE WHEN year = '2016' THEN real_delivery_time END) AS Year2016_real_time,
-    AVG(CASE WHEN year = '2017' THEN real_delivery_time END) AS Year2017_real_time,
-    AVG(CASE WHEN year = '2018' THEN real_delivery_time END) AS Year2018_real_time,
-    AVG(CASE WHEN year = '2016' THEN delivery_diff END) AS Year2016_estimated_time,
-    AVG(CASE WHEN year = '2017' THEN delivery_diff END) AS Year2017_estimated_time,
-    AVG(CASE WHEN year = '2018' THEN delivery_diff END) AS Year2018_estimated_time
+    AVG(CASE WHEN strftime('%Y', year_month) = '2016' THEN avg_real_time END) AS Year2016_real_time,
+    AVG(CASE WHEN strftime('%Y', year_month) = '2017' THEN avg_real_time END) AS Year2017_real_time,
+    AVG(CASE WHEN strftime('%Y', year_month) = '2018' THEN avg_real_time END) AS Year2018_real_time,
+    AVG(CASE WHEN strftime('%Y', year_month) = '2016' THEN avg_estimated_time END) AS Year2016_estimated_time,
+    AVG(CASE WHEN strftime('%Y', year_month) = '2017' THEN avg_estimated_time END) AS Year2017_estimated_time,
+    AVG(CASE WHEN strftime('%Y', year_month) = '2018' THEN avg_estimated_time END) AS Year2018_estimated_time
 FROM 
-    DeliveredOrders
+    real_times
+LEFT JOIN 
+    estimated_times USING (year_month, month_no)
 GROUP BY 
+    month_no
+ORDER BY 
     month_no;

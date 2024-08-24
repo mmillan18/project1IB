@@ -5,29 +5,35 @@
 -- Year2017, with the revenue per month of 2017 (0.00 if it doesn't exist) and
 -- Year2018, with the revenue per month of 2018 (0.00 if it doesn't exist).
 
-WITH MonthlyRevenue AS (
+WITH revenue_by_month_year AS (
     SELECT 
-        strftime('%Y', order_purchase_timestamp) AS year,
-        strftime('%m', order_purchase_timestamp) AS month_no,
-        SUM(payment_value) AS total_revenue
+        strftime('%Y', o.order_purchase_timestamp) AS year,
+        strftime('%m', o.order_purchase_timestamp) AS month_no,
+        strftime('%Y-%m', o.order_purchase_timestamp) AS year_month,
+        SUM(p.payment_value) AS revenue
     FROM 
-        olist_orders
+        olist_orders o
     JOIN 
-        olist_order_payments 
-    ON 
-        olist_orders.order_id = olist_order_payments.order_id
+        olist_order_payments p ON o.order_id = p.order_id
     WHERE 
-        strftime('%Y', order_purchase_timestamp) IN ('2016', '2017', '2018')
+        o.order_status = 'delivered' 
+        AND o.order_delivered_customer_date IS NOT NULL
     GROUP BY 
-        year, month_no
+        year_month
 )
 SELECT 
-    month_no,
-    strftime('%b', '2000-' || month_no || '-01') AS month,
-    SUM(CASE WHEN year = '2016' THEN total_revenue ELSE 0 END) AS Year2016,
-    SUM(CASE WHEN year = '2017' THEN total_revenue ELSE 0 END) AS Year2017,
-    SUM(CASE WHEN year = '2018' THEN total_revenue ELSE 0 END) AS Year2018
-FROM 
-    MonthlyRevenue
-GROUP BY 
-    month_no;
+    month_no,  
+    CASE(
+        WHEN month_no = '01' THEN 'Ene'
+        WHEN month_no = '02' THEN 'Feb'
+        WHEN month_no = '03' THEN 'Mar'
+        WHEN month_no = '04' THEN 'Abr'
+        WHEN month_no = '05' THEN 'May'
+        WHEN month_no = '06' THEN 'Jun'
+        WHEN month_no = '07' THEN 'Jul'
+        WHEN month_no = '08' THEN 'Ago'
+        WHEN month_no = '09' THEN 'Sep'
+        WHEN month_no = '10' THEN 'Oct'
+        WHEN month_no = '11' THEN 'Nov'
+        WHEN month_no = '12' THEN 'Dic'
+    ) as month, FROM revenue_by_month_year;
