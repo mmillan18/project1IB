@@ -9,7 +9,6 @@ WITH revenue_by_month_year AS (
     SELECT 
         strftime('%Y', o.order_purchase_timestamp) AS year,
         strftime('%m', o.order_purchase_timestamp) AS month_no,
-        strftime('%Y-%m', o.order_purchase_timestamp) AS year_month,
         SUM(p.payment_value) AS revenue
     FROM 
         olist_orders o
@@ -18,22 +17,31 @@ WITH revenue_by_month_year AS (
     WHERE 
         o.order_status = 'delivered' 
         AND o.order_delivered_customer_date IS NOT NULL
-    GROUP BY 
-        year_month
+    GROUP BY
+        year, month_no
 )
 SELECT 
-    month_no,  
-    CASE(
-        WHEN month_no = '01' THEN 'Ene'
+    month_no,
+    CASE
+        WHEN month_no = '01' THEN 'Jan'
         WHEN month_no = '02' THEN 'Feb'
         WHEN month_no = '03' THEN 'Mar'
-        WHEN month_no = '04' THEN 'Abr'
+        WHEN month_no = '04' THEN 'Apr'
         WHEN month_no = '05' THEN 'May'
         WHEN month_no = '06' THEN 'Jun'
         WHEN month_no = '07' THEN 'Jul'
-        WHEN month_no = '08' THEN 'Ago'
+        WHEN month_no = '08' THEN 'Aug'
         WHEN month_no = '09' THEN 'Sep'
         WHEN month_no = '10' THEN 'Oct'
         WHEN month_no = '11' THEN 'Nov'
-        WHEN month_no = '12' THEN 'Dic'
-    ) as month, FROM revenue_by_month_year;
+        WHEN month_no = '12' THEN 'Dec'
+    END AS month,
+    COALESCE(SUM(CASE WHEN year = '2016' THEN revenue ELSE 0.00 END), 0.00) AS Year2016,
+    COALESCE(SUM(CASE WHEN year = '2017' THEN revenue ELSE 0.00 END), 0.00) AS Year2017,
+    COALESCE(SUM(CASE WHEN year = '2018' THEN revenue ELSE 0.00 END), 0.00) AS Year2018
+FROM 
+    revenue_by_month_year
+GROUP BY 
+    month
+ORDER BY 
+    month_no

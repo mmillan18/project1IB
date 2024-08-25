@@ -8,21 +8,25 @@
 -- delivery date should be not null.
 
 SELECT 
-    p.product_category_name_english AS Category,
-    COUNT(o.order_id) AS Num_order,
-    SUM(COALESCE(oi.price, 0)) AS Revenue
+    pt.product_category_name_english AS Category,
+    COUNT(DISTINCT o.order_id) AS Num_order,
+    SUM(COALESCE(op.payment_value, 0)) AS Revenue
 FROM 
     olist_order_items oi
 JOIN 
-    olist_orders o ON oi.order_id = o.order_id
-JOIN 
-    olist_products p ON oi.product_id = p.product_id
+    olist_orders o ON o.order_id = oi."00""order_id"""
+JOIN
+    olist_products p ON p.product_id = oi.product_id
+JOIN
+    olist_order_payments op ON op.order_id = oi."00""order_id"""
+JOIN
+    product_category_name_translation pt ON pt.product_category_name = p.product_category_name
 WHERE 
     o.order_status = 'delivered'
-    AND p.product_category_name_english IS NOT NULL
+    AND p.product_category_name IS NOT NULL
     AND o.order_delivered_customer_date IS NOT NULL
 GROUP BY 
-    p.product_category_name_english
+    pt.product_category_name_english
 ORDER BY 
     Revenue ASC
 LIMIT 10;
