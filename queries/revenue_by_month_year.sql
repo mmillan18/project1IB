@@ -5,43 +5,47 @@
 -- Year2017, with the revenue per month of 2017 (0.00 if it doesn't exist) and
 -- Year2018, with the revenue per month of 2018 (0.00 if it doesn't exist).
 
-WITH revenue_by_month_year AS (
-    SELECT 
-        strftime('%Y', o.order_delivered_customer_date) AS year,
-        strftime('%m', o.order_delivered_customer_date) AS month_no,
-        SUM(p.payment_value) AS revenue
-    FROM 
-        olist_orders o
-    JOIN 
-        olist_order_payments p ON p.order_id = o.order_id
+WITH filtered_orders AS (
+    SELECT
+        oo.order_delivered_customer_date AS order_del,
+        oop.payment_value as payment_val,
+        ROW_NUMBER() OVER (PARTITION BY oop.order_id) AS filtering
+    FROM olist_orders oo
+    JOIN olist_order_payments oop ON oop.order_id = oo.order_id
     WHERE 
-        o.order_status = 'delivered'
-        AND o.order_delivered_customer_date IS NOT NULL
-    GROUP BY
-        year, month_no
+        oo.order_status = 'delivered' 
+        AND oo.order_delivered_customer_date IS NOT NULL
+), revenue_by_month_year AS (
+	SELECT
+	strftime('%m', fo.order_del) AS month_no,
+	strftime('%Y', fo.order_del) AS year,
+	fo.payment_val AS payment
+	FROM 
+		filtered_orders fo
+	WHERE 
+    	fo.filtering = 1
 )
 SELECT 
-    month_no,
-    CASE (month_no)
-        WHEN '01' THEN 'Jan'
-        WHEN '02' THEN 'Feb'
-        WHEN '03' THEN 'Mar'
-        WHEN '04' THEN 'Apr'
-        WHEN '05' THEN 'May'
-        WHEN '06' THEN 'Jun'
-        WHEN '07' THEN 'Jul'
-        WHEN '08' THEN 'Aug'
-        WHEN '09' THEN 'Sep'
-        WHEN '10' THEN 'Oct'
-        WHEN '11' THEN 'Nov'
-        WHEN '12' THEN 'Dec'
+    rm.month_no,
+    CASE
+        WHEN (rm.month_no) = '02' THEN 'Feb'
+        WHEN (rm.month_no) = '03' THEN 'Mar'
+        WHEN (rm.month_no) = '04' THEN 'Apr'
+        WHEN (rm.month_no) = '05' THEN 'May'
+        WHEN (rm.month_no) = '06' THEN 'Jun'
+        WHEN (rm.month_no) = '07' THEN 'Jul'
+        WHEN (rm.month_no) = '08' THEN 'Aug'
+        WHEN (rm.month_no) = '09' THEN 'Sep'
+        WHEN (rm.month_no) = '10' THEN 'Oct'
+        WHEN (rm.month_no) = '11' THEN 'Nov'
+        WHEN (rm.month_no) = '12' THEN 'Dec'
     END AS month,
-    COALESCE(SUM(CASE WHEN year = '2016' THEN revenue ELSE 0.00 END), 0.00) AS Year2016,
-    COALESCE(SUM(CASE WHEN year = '2017' THEN revenue ELSE 0.00 END), 0.00) AS Year2017,
-    COALESCE(SUM(CASE WHEN year = '2018' THEN revenue ELSE 0.00 END), 0.00) AS Year2018
+    SUM(CASE WHEN rm.year = '2016' THEN rm.payment ELSE 0.00 END) AS Year2016,
+    SUM(CASE WHEN rm.year = '2017' THEN rm.payment ELSE 0.00 END) AS Year2017,
+    SUM(CASE WHEN rm.year = '2018' THEN rm.payment ELSE 0.00 END) AS Year2018
 FROM 
-    revenue_by_month_year
+    revenue_by_month_year rm
 GROUP BY 
-    month, month_no
+   rm.month_no
 ORDER BY 
-    month_no
+   rm.month_no;
