@@ -7,34 +7,34 @@
 
 WITH revenue_by_month_year AS (
     SELECT 
-        strftime('%Y', o.order_purchase_timestamp) AS year,
-        strftime('%m', o.order_purchase_timestamp) AS month_no,
+        strftime('%Y', o.order_delivered_customer_date) AS year,
+        strftime('%m', o.order_delivered_customer_date) AS month_no,
         SUM(p.payment_value) AS revenue
     FROM 
         olist_orders o
     JOIN 
-        olist_order_payments p ON o.order_id = p.order_id
+        olist_order_payments p ON p.order_id = o.order_id
     WHERE 
-        o.order_status = 'delivered' 
+        o.order_status = 'delivered'
         AND o.order_delivered_customer_date IS NOT NULL
     GROUP BY
         year, month_no
 )
 SELECT 
     month_no,
-    CASE
-        WHEN month_no = '01' THEN 'Jan'
-        WHEN month_no = '02' THEN 'Feb'
-        WHEN month_no = '03' THEN 'Mar'
-        WHEN month_no = '04' THEN 'Apr'
-        WHEN month_no = '05' THEN 'May'
-        WHEN month_no = '06' THEN 'Jun'
-        WHEN month_no = '07' THEN 'Jul'
-        WHEN month_no = '08' THEN 'Aug'
-        WHEN month_no = '09' THEN 'Sep'
-        WHEN month_no = '10' THEN 'Oct'
-        WHEN month_no = '11' THEN 'Nov'
-        WHEN month_no = '12' THEN 'Dec'
+    CASE (month_no)
+        WHEN '01' THEN 'Jan'
+        WHEN '02' THEN 'Feb'
+        WHEN '03' THEN 'Mar'
+        WHEN '04' THEN 'Apr'
+        WHEN '05' THEN 'May'
+        WHEN '06' THEN 'Jun'
+        WHEN '07' THEN 'Jul'
+        WHEN '08' THEN 'Aug'
+        WHEN '09' THEN 'Sep'
+        WHEN '10' THEN 'Oct'
+        WHEN '11' THEN 'Nov'
+        WHEN '12' THEN 'Dec'
     END AS month,
     COALESCE(SUM(CASE WHEN year = '2016' THEN revenue ELSE 0.00 END), 0.00) AS Year2016,
     COALESCE(SUM(CASE WHEN year = '2017' THEN revenue ELSE 0.00 END), 0.00) AS Year2017,
@@ -42,6 +42,6 @@ SELECT
 FROM 
     revenue_by_month_year
 GROUP BY 
-    month
+    month, month_no
 ORDER BY 
     month_no

@@ -13,11 +13,11 @@ SELECT
 FROM 
     olist_order_items oi
 JOIN 
-    olist_orders o ON o.order_id = oi."00""order_id"""
+    olist_orders o ON o.order_id = oi.order_id
 JOIN
     olist_products p ON p.product_id = oi.product_id
 JOIN
-    olist_order_payments op ON op.order_id = oi."00""order_id"""
+    olist_order_payments op ON op.order_id = oi.order_id
 JOIN
     product_category_name_translation pt ON pt.product_category_name = p.product_category_name
 WHERE 

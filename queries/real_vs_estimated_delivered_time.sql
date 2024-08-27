@@ -14,59 +14,57 @@
 -- 1. You can use the julianday function to convert a date to a number.
 -- 2. order_status == 'delivered' AND order_delivered_customer_date IS NOT NULL
 -- 3. Take distinct order_id.
-
 WITH delivery_times AS (
     SELECT 
-        strftime('%Y', order_delivered_customer_date) AS year,
-        strftime('%m', order_delivered_customer_date) AS month_no,
-        strftime('%Y-%m', order_delivered_customer_date) AS year_month,
-        julianday(order_delivered_customer_date) - julianday(order_estimated_delivery_date) AS delivery_difference
+        o.order_id,
+        strftime('%m', o.order_purchase_timestamp) AS month_no,
+        strftime('%Y', o.order_purchase_timestamp) AS year,
+        julianday(o.order_delivered_customer_date) - julianday(o.order_purchase_timestamp) AS real_delivery_time,
+        julianday(o.order_estimated_delivery_date) - julianday(o.order_purchase_timestamp) AS estimated_delivery_time
     FROM 
-        olist_orders
+        olist_orders o
     WHERE 
-        order_status = 'delivered' 
-        AND order_delivered_customer_date IS NOT NULL
-    GROUP BY 
-        order_id
+        o.order_status = 'delivered'
+        AND o.order_delivered_customer_date IS NOT NULL
 ),
-real_times AS (
+monthly_averages AS (
     SELECT 
-        year_month,
         month_no,
-        AVG(delivery_difference) AS avg_real_time
+        CASE (month_no)
+            WHEN '01' THEN 'Jan'
+            WHEN '02' THEN 'Feb'
+            WHEN '03' THEN 'Mar'
+            WHEN '04' THEN 'Apr'
+            WHEN '05' THEN 'May'
+            WHEN '06' THEN 'Jun'
+            WHEN '07' THEN 'Jul'
+            WHEN '08' THEN 'Aug'
+            WHEN '09' THEN 'Sep'
+            WHEN '10' THEN 'Oct'
+            WHEN '11' THEN 'Nov'
+            WHEN '12' THEN 'Dec'
+        END AS month,
+        year,
+        AVG(real_delivery_time) AS avg_real_delivery_time,
+        AVG(estimated_delivery_time) AS avg_estimated_delivery_time
     FROM 
         delivery_times
-    GROUP BY 
-        year_month
-),
-estimated_times AS (
-    SELECT 
-        strftime('%Y', order_purchase_timestamp) AS year,
-        strftime('%m', order_purchase_timestamp) AS month_no,
-        strftime('%Y-%m', order_purchase_timestamp) AS year_month,
-        AVG(julianday(order_estimated_delivery_date) - julianday(order_purchase_timestamp)) AS avg_estimated_time
-    FROM 
-        olist_orders
-    WHERE 
-        order_status = 'delivered' 
-        AND order_delivered_customer_date IS NOT NULL
-    GROUP BY 
-        year_month
+    GROUP BY
+    year, month_no, month
+        
 )
 SELECT 
     month_no,
-    strftime('%b', '2000-' || month_no || '-01') AS month,
-    AVG(CASE WHEN strftime('%Y', year_month) = '2016' THEN avg_real_time END) AS Year2016_real_time,
-    AVG(CASE WHEN strftime('%Y', year_month) = '2017' THEN avg_real_time END) AS Year2017_real_time,
-    AVG(CASE WHEN strftime('%Y', year_month) = '2018' THEN avg_real_time END) AS Year2018_real_time,
-    AVG(CASE WHEN strftime('%Y', year_month) = '2016' THEN avg_estimated_time END) AS Year2016_estimated_time,
-    AVG(CASE WHEN strftime('%Y', year_month) = '2017' THEN avg_estimated_time END) AS Year2017_estimated_time,
-    AVG(CASE WHEN strftime('%Y', year_month) = '2018' THEN avg_estimated_time END) AS Year2018_estimated_time
+    month,
+    COALESCE(MAX(CASE WHEN year = '2016' THEN avg_real_delivery_time END), null) AS Year2016_real_time,
+    COALESCE(MAX(CASE WHEN year = '2017' THEN avg_real_delivery_time END), null) AS Year2017_real_time,
+    COALESCE(MAX(CASE WHEN year = '2018' THEN avg_real_delivery_time END), null) AS Year2018_real_time,
+    COALESCE(MAX(CASE WHEN year = '2016' THEN avg_estimated_delivery_time END), null) AS Year2016_estimated_time,
+    COALESCE(MAX(CASE WHEN year = '2017' THEN avg_estimated_delivery_time END), null) AS Year2017_estimated_time,
+    COALESCE(MAX(CASE WHEN year = '2018' THEN avg_estimated_delivery_time END), null) AS Year2018_estimated_time
 FROM 
-    real_times
-LEFT JOIN 
-    estimated_times USING (year_month, month_no)
-GROUP BY 
+    monthly_averages
+GROUP BY
+    month_no, month
+ORDER BY
     month_no
-ORDER BY 
-    month_no;
