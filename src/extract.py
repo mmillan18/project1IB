@@ -29,17 +29,18 @@ def get_public_holidays(public_holidays_url: str, year: str) -> DataFrame:
     
     try:
         response = requests.get(url)
-        response.raise_for_status()
+        response.raise_for_status()  # Esto generará una excepción en caso de error HTTP
     except requests.RequestException as e:
         raise SystemExit(e)
     
-    holidays = StringIO(response.text)
-    holidays = read_json(holidays)
+    holidays = response.json()  # Analiza la respuesta JSON directamente
     df = DataFrame(holidays)
-
-    df = df.drop(columns=["types", "counties"])
-    df["date"]=to_datetime(df["date"])
-
+    
+    # Eliminar columnas "types" y "counties" si existen
+    df = df.drop(columns=["types", "counties"], errors='ignore')
+    
+    # Convertir la columna 'date' a tipo datetime
+    df["date"] = to_datetime(df["date"])
     
     return df
 

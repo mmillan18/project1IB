@@ -149,9 +149,6 @@ def query_freight_value_weight_relationship(database: Engine) -> QueryResult:
     some Pandas magic to produce the desired output: A table that allows us to
     compare the order total weight and total freight value.
 
-    Of course, you could also do this with pure SQL statements but we would like
-    to see if you've learned correctly the pandas' concepts seen so far.
-
     Args:
         database (Engine): Database connection.
 
@@ -161,67 +158,39 @@ def query_freight_value_weight_relationship(database: Engine) -> QueryResult:
     query_name = QueryEnum.GET_FREIGHT_VALUE_WEIGHT_RELATIONSHIP.value
 
     # Get orders from olist_orders table
-    orders = read_sql("SELECT * FROM olist_orders", database)
+    orders = read_sql("SELECT order_id, order_status FROM olist_orders", database)
 
-    # Get items from olist_order_items table
-    items = read_sql("SELECT * FROM olist_order_items", database)
+    # Get items from olist_order_items table (ensure to select product_id)
+    items = read_sql("SELECT order_id, product_id, freight_value FROM olist_order_items", database)
 
     # Get products from olist_products table
-    products = read_sql("SELECT * FROM olist_products", database)
+    products = read_sql("SELECT product_id, product_weight_g FROM olist_products", database)
 
-    # TODO: Merge items, orders and products tables on 'order_id'/'product_id'.
-    # We suggest to use pandas.merge() function.
+    # Merge items with products on 'product_id'
+    merged_data = pd.merge(items, products, on="product_id")
 
-    # Assign the result to the data variable.
-    # Assign the result to the `data` variable.
-    data = pd.merge(items, products, on="product_id")
-    data = pd.merge(data, orders, on="order_id")
+    # Merge the result with orders on 'order_id'
+    merged_data = pd.merge(merged_data, orders, on="order_id")
 
-    # TODO: Get only delivered orders.
-    # Using the previous results from the merge (stored in data variable),
-    # apply a boolean mask to keep only the 'delivered' orders.
-    # Assign the result to the variable delivered.
-    # Assign the result to the variable `delivered`.
+    # Filter only delivered orders
+    delivered = merged_data[merged_data["order_status"] == "delivered"]
 
-    delivered = data[data["order_status"] == "delivered"]
-
-    # TODO: Get the sum of freight_value and product_weight_g for each order_id.
-    # The same order (identified by 'order_id') can have multiple products inside,
-    # then we decided to sum all the products 'freight_value' and 'product_weight_g'
-    # inside that order.
-    # Use the pandas DataFrame stored in delivered variable. We suggest you to
-    # look at pandas.DataFrame.groupby() and pandas.DataFrame.agg() for the data
-    # transformation.
-
-    # Store the result in the aggregations variable.
-
-    # Store the result in the `aggregations` variable.
+    # Aggregate to get the sum of freight_value and total_weight per order_id
     aggregations = delivered.groupby("order_id").agg(
-        total_freight_value=pd.NamedAgg(column="freight_value", aggfunc="sum"),
-        total_weight=pd.NamedAgg(column="product_weight_g", aggfunc="sum")
+        freight_value=pd.NamedAgg(column="freight_value", aggfunc="sum"),
+        product_weight_g=pd.NamedAgg(column="product_weight_g", aggfunc="sum")
     ).reset_index()
 
-    # Keep the code below as it is, this will return the result from
-    # aggregations variable with the corresponding name and format.
     return QueryResult(query=query_name, result=aggregations)
 
 
+
+
+
+
 def query_orders_per_day_and_holidays_2017(database: Engine) -> QueryResult:
-    """Get the query for orders per day and holidays in 2017.
+    """Get the query for orders per day and holidays in 2017."""
 
-    In this query, we want to get a table with the relation between the number
-    of orders made on each day and also information that indicates if that day was
-    a Holiday.
-
-    Of course, you could also do this with pure SQL statements but we would like
-    to see if you've learned correctly the pandas' concepts seen so far.
-
-    Args:
-        database (Engine): Database connection.
-
-    Returns:
-        Query: The query for orders per day and holidays in 2017.
-    """
     query_name = QueryEnum.ORDERS_PER_DAY_AND_HOLIDAYS_2017.value
 
     # Reading the public holidays from public_holidays table
@@ -230,44 +199,32 @@ def query_orders_per_day_and_holidays_2017(database: Engine) -> QueryResult:
     # Reading the orders from olist_orders table
     orders = read_sql("SELECT * FROM olist_orders", database)
 
-    # TODO: Converting the order_purchase_timestamp column to datetime.
-    # Replace the content for the column order_purchase_timestamp in the orders
-    # DataFrame with the same data but converted to datetime.
-    # We suggest you to read about how to use pd.to_datetime() for this.
+    # Converting the order_purchase_timestamp column to datetime
     orders["order_purchase_timestamp"] = pd.to_datetime(orders["order_purchase_timestamp"])
 
-    # TODO: Filtering only the order purchase timestamps from the year 2017.
-    # Using the orders DataFrame, apply a boolean mask for retrieving all the
-    # columns but only the rows corresponding to the year 2017.
-    # Assign the result to a new variable called filtered_dates.
-    # Assign the result to a new variable called `filtered_dates`.
+    # Filtering only the order purchase timestamps from the year 2017
     filtered_dates = orders[orders["order_purchase_timestamp"].dt.year == 2017]
 
-    # TODO: Counting the orders per day.
-    # Using the filtered_dates DataFrame, count how many orders were made on
-    # each day.
-    # Assign the result to the order_purchase_ammount_per_date variable.
-    # Assign the result to the `order_purchase_ammount_per_date` variable.
-    order_purchase_ammount_per_date = filtered_dates.groupby(
+    # Counting the orders per day
+    order_purchase_amount_per_date = filtered_dates.groupby(
         filtered_dates["order_purchase_timestamp"].dt.date
     ).size().reset_index(name="order_count")
 
-    # TODO: Creating a dataframe with the result. Assign it to result_df variable.
-    # Now we will create the final DataFrame for the output.
-    # This DataFrame must have 3 columns:
-    #   - 'order_count': with the number of orders per day, you should be able to get
-    #                    this data from order_purchase_ammount_per_date variable.
-    #   - 'date': the corresponding date for each count of orders.
-    #   - 'holiday': boolean column having True when that date is a holiday or,
-    #                False otherwise. Use the holidays DataFrame for this.
-    #                False otherwise. Use the `holidays` DataFrame for this.
-    result_df = order_purchase_ammount_per_date.copy()
+    # Converting the 'date' column in holidays to datetime.date
+    holidays["date"] = pd.to_datetime(holidays["date"]).dt.date
+
+    # Creating the final DataFrame with the result
+    result_df = order_purchase_amount_per_date.copy()
     result_df.columns = ["date", "order_count"]
+
+    # Converting the 'date' column in result_df to datetime.date
+    result_df["date"] = pd.to_datetime(result_df["date"]).dt.date
+
+    # Adding the 'holiday' column, checking if the date is in the holidays DataFrame
     result_df["holiday"] = result_df["date"].isin(holidays["date"])
 
-    # Keep the code below as it is, this will return the result from
-    # aggregations variable with the corresponding name and format.
     return QueryResult(query=query_name, result=result_df)
+
 
 
 def get_all_queries() -> List[Callable[[Engine], QueryResult]]:

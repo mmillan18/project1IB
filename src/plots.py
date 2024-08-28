@@ -1,12 +1,11 @@
 import matplotlib
 import matplotlib.pyplot as plt
-
+import pandas as pd
 import plotly.express as px
 import seaborn as sns
-
 from pandas import DataFrame
 
-
+# Función para graficar ingresos por mes y año
 def plot_revenue_by_month_year(df: DataFrame, year: int):
     """Plot revenue by month in a given year
 
@@ -27,7 +26,7 @@ def plot_revenue_by_month_year(df: DataFrame, year: int):
 
     plt.show()
 
-
+# Función para graficar tiempo de entrega real vs estimado por mes y año
 def plot_real_vs_predicted_delivered_time(df: DataFrame, year: int):
     """Plot real vs predicted delivered time by month in a given year
 
@@ -54,7 +53,7 @@ def plot_real_vs_predicted_delivered_time(df: DataFrame, year: int):
 
     plt.show()
 
-
+# Función para graficar la cantidad global de estados de pedido
 def plot_global_amount_order_status(df: DataFrame):
     """Plot global amount of order status
 
@@ -85,7 +84,7 @@ def plot_global_amount_order_status(df: DataFrame):
 
     plt.show()
 
-
+# Función para graficar ingresos por estado
 def plot_revenue_per_state(df: DataFrame):
     """Plot revenue per state
 
@@ -98,7 +97,7 @@ def plot_revenue_per_state(df: DataFrame):
     fig.update_layout(margin=dict(t=50, l=25, r=25, b=25))
     fig.show()
 
-
+# Función para graficar las 10 categorías con menores ingresos
 def plot_top_10_least_revenue_categories(df: DataFrame):
     """Plot top 10 least revenue categories
 
@@ -129,39 +128,49 @@ def plot_top_10_least_revenue_categories(df: DataFrame):
 
     plt.show()
 
-
+# Función para graficar las 10 categorías con mayores ingresos
 def plot_top_10_revenue_categories_ammount(df: DataFrame):
-    """Plot top 10 revenue categories
+    """Plot top 10 revenue categories by amount
 
     Args:
         df (DataFrame): Dataframe with top 10 revenue categories query result
     """
-    # Plotting the top 10 revenue categories ammount
-    _, ax = plt.subplots(figsize=(6, 3), subplot_kw=dict(aspect="equal"))
+    # Ajustar el tamaño del gráfico y el aspecto del subplot
+    _, ax = plt.subplots(figsize=(8, 8), subplot_kw=dict(aspect="equal"))
 
-    elements = [x.split()[-1] for x in df["Category"]]
+    # Extraer los nombres de las categorías
+    elements = df["Category"]
 
+    # Extraer los ingresos correspondientes a cada categoría
     revenue = df["Revenue"]
-    wedges, autotexts = ax.pie(revenue, textprops=dict(color="w"))
 
+    # Crear un gráfico de pastel para las 10 categorías con más ingresos
+    wedges, autotexts = ax.pie(revenue, textprops=dict(color="w"), startangle=140)
+
+    # Añadir la leyenda al gráfico
     ax.legend(
         wedges,
         elements,
-        title="Top 10 Revenue Categories",
+        title="Top 10 Categorías por Ingresos",
         loc="center left",
         bbox_to_anchor=(1, 0, 0.5, 1),
     )
 
-    plt.setp(autotexts, size=8, weight="bold")
-    my_circle = plt.Circle((0, 0), 0.7, color="white")
+    # Establecer el estilo del texto
+    plt.setp(autotexts, size=10, weight="bold")
+
+    # Añadir un círculo blanco en el centro para crear un efecto de donut
+    my_circle = plt.Circle((0, 0), 0.70, color="white")
     p = plt.gcf()
     p.gca().add_artist(my_circle)
 
-    ax.set_title("Top 10 Revenue Categories ammount")
+    # Añadir un título al gráfico
+    ax.set_title("Top 10 Categorías por Ingresos")
 
+    # Mostrar el gráfico
     plt.show()
 
-
+# Función para graficar un treemap de las 10 categorías con mayores ingresos
 def plot_top_10_revenue_categories(df: DataFrame):
     """Plot top 10 revenue categories
 
@@ -172,18 +181,23 @@ def plot_top_10_revenue_categories(df: DataFrame):
     fig.update_layout(margin=dict(t=50, l=25, r=25, b=25))
     fig.show()
 
-
+# Función para graficar la relación entre el valor del flete y el peso del producto
 def plot_freight_value_weight_relationship(df: DataFrame):
     """Plot freight value weight relationship
 
     Args:
         df (DataFrame): Dataframe with freight value weight relationship query result
     """
-    # TODO: plot freight value weight relationship using seaborn scatterplot.
-    # Your x-axis should be weight and, y-axis freight value.
-    raise NotImplementedError
+    plt.figure(figsize=(10, 6))
+    sns.scatterplot(data=df, x="product_weight_g", y="freight_value")
+    plt.title("Freight Value vs Product Weight")
+    plt.xlabel("Total Weight (g)")
+    plt.ylabel("Freight Value (currency unit)")
+    plt.grid(True)
+    plt.show()
 
 
+# Función para graficar la diferencia entre la fecha de entrega estimada y la real
 def plot_delivery_date_difference(df: DataFrame):
     """Plot delivery date difference
 
@@ -194,14 +208,33 @@ def plot_delivery_date_difference(df: DataFrame):
         title="Difference Between Delivery Estimate Date and Delivery Date"
     )
 
-
-def plot_order_amount_per_day_with_holidays(df: DataFrame):
+# Función para graficar la cantidad de pedidos por día con días festivos
+def plot_order_amount_per_day_with_holidays(df: pd.DataFrame):
     """Plot order amount per day with holidays
 
     Args:
         df (DataFrame): Dataframe with order amount per day with holidays query result
     """
-    # TODO: plot order amount per day with holidays using matplotlib.
-    # Mark holidays with vertical lines.
-    # Hint: use plt.axvline.
-    raise NotImplementedError
+    # Convertir la columna 'date' a datetime
+    df['date'] = pd.to_datetime(df['date'])
+
+    # Crear la figura y los ejes para el gráfico
+    plt.figure(figsize=(14, 7))
+
+    # Graficar la cantidad de pedidos por día
+    plt.plot(df['date'], df['order_count'], marker='o', linestyle='-', color='b', label='Cantidad de pedidos')
+
+    # Marcar los días festivos con líneas verticales
+    for holiday in df[df['holiday'] == True]['date']:
+        plt.axvline(x=holiday, color='r', linestyle='--', linewidth=1, label='Festivo' if holiday == df[df['holiday'] == True]['date'].iloc[0] else "")
+
+    # Configuraciones adicionales del gráfico
+    plt.title('Cantidad de pedidos por día con festivos marcados')
+    plt.xlabel('Fecha')
+    plt.ylabel('Cantidad de pedidos')
+    plt.legend()
+    plt.grid(True)
+    plt.tight_layout()
+
+    # Mostrar el gráfico
+    plt.show()
