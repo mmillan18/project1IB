@@ -16,6 +16,7 @@ dag = DAG(
     'olist_dag',
     default_args=default_args,
     schedule_interval=timedelta(days=1),
+    is_paused_upon_creation=False
 )
 
 def extract_data(**kwargs):
