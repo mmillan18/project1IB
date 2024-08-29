@@ -131,6 +131,9 @@ services:
       <<: *airflow-common-depends-on
       airflow-init:
         condition: service_completed_successfully
+    environment:
+      <<: *airflow-common-env
+      AIRFLOW__CORE__LOAD_EXAMPLES: "False"
 
   airflow-scheduler:
     <<: *airflow-common
@@ -146,6 +149,9 @@ services:
       <<: *airflow-common-depends-on
       airflow-init:
         condition: service_completed_successfully
+    environment:
+      <<: *airflow-common-env
+      AIRFLOW__CORE__LOAD_EXAMPLES: "False"
 
   airflow-worker:
     <<: *airflow-common
